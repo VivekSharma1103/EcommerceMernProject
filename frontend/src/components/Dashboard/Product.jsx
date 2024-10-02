@@ -1,25 +1,26 @@
-import React, { useEffect ,useState } from 'react';
-import { fetchProduct , deleteProduct } from '../../redux/productSlice';
+import React, { useEffect, useState } from 'react';
+import { fetchProduct, deleteProduct } from '../../redux/productSlice';
 import { useDispatch, useSelector } from 'react-redux';
 import { DataGrid } from '@mui/x-data-grid';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
-import Typography from '@mui/material/Typography';
 import Modal from '@mui/material/Modal';
 import { FiEdit2 } from 'react-icons/fi';
 import { MdDeleteOutline } from 'react-icons/md';
 import { useForm } from 'react-hook-form';
 import { createProduct } from '../../redux/productSlice';
+
 function Product() {
   const { handleSubmit, register } = useForm();
-  const [isEdit , setIsEdit] = useState(false) ;
+  const [isEdit, setIsEdit] = useState(false);
   const [open, setOpen] = React.useState(false);
-  const handleOpen = () => setOpen(true);
-  const handleClose = () => setOpen(false);
+  const [selectedProductId, setSelectedProductId] = useState(null); // Track selected product for delete/edit
+
   const dispatch = useDispatch();
+
   useEffect(() => {
     dispatch(fetchProduct());
-  }, []);
+  }, [dispatch]);
 
   const style = {
     position: 'absolute',
@@ -28,20 +29,25 @@ function Product() {
     transform: 'translate(-50%, -50%)',
     width: 400,
     bgcolor: 'background.paper',
-
     boxShadow: 24,
     p: 4,
   };
 
   const { product } = useSelector((state) => state.product);
 
-  const handleEdit = () => {
-    setIsEdit(true)
-    handleOpen()
-  }
-  const handleDelete = ()=>{
-      dispatch(deleteProduct());
-  }
+  const handleEdit = (id) => {
+    setSelectedProductId(id); // Store the product ID
+    setIsEdit(true);
+    setOpen(true);
+  };
+
+  const handleDelete = (id) => {
+    dispatch(deleteProduct(id)) // Pass the product ID to deleteProduct action
+      .then(() => {
+        dispatch(fetchProduct()); // Fetch updated product list after deletion
+      });
+  };
+
   const columns = [
     {
       field: 'image',
@@ -52,6 +58,7 @@ function Product() {
           <img
             className="object-contain w-14"
             src={`http://localhost:3000/${params.value}`}
+            alt="Product"
           />
         </div>
       ),
@@ -84,16 +91,18 @@ function Product() {
       headerName: 'Actions',
       renderCell: (params) => (
         <div className="flex m-2 gap-2 cursor-pointer">
-          <FiEdit2 size={26} onClick={handleEdit} className="text-blue-500" />
-
-          <MdDeleteOutline size={26} onClick={handleDelete}className="text-red-500" />
+          <FiEdit2 size={26} onClick={() => handleEdit(params.row.id)} className="text-blue-500" />
+          <MdDeleteOutline
+            size={26}
+            onClick={() => handleDelete(params.row.id)} // Pass product ID to handleDelete
+            className="text-red-500"
+          />
         </div>
       ),
     },
   ];
 
   const onSubmit = async (data) => {
-    console.log(data.discountPercentage);
     const formData = new FormData();
     formData.append('name', data.name);
     formData.append('price', data.price);
@@ -102,16 +111,16 @@ function Product() {
     formData.append('stock', data.stock);
     formData.append('description', data.description);
     formData.append('discountPercentage', data.discountPercentage);
-    console.log('formdata', formData);
+
     await dispatch(createProduct(formData));
     dispatch(fetchProduct());
-    handleClose();
+    setOpen(false);
   };
-  
+
   const handleButtonClick = () => {
     setIsEdit(false);
-    handleOpen()
-  }
+    setOpen(true);
+  };
 
   return (
     <div className="m-10">
@@ -136,112 +145,23 @@ function Product() {
         />
       </Box>
       <Modal
-  open={open}
-  onClose={handleClose}
-  aria-labelledby="modal-modal-title"
-  aria-describedby="modal-modal-description"
->
-  <Box
-    sx={{
-      backgroundColor: '#fff7f0',
-      padding: '2rem',
-      borderRadius: '12px',
-      boxShadow: '0px 4px 20px rgba(0, 0, 0, 1)',
-      maxWidth: '800px',
-      margin: 'auto',
-      position:'relative',
-      top:'20vh'
-      
-    }}
-  >
-    <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      {/* Name */}
-      <div className="flex flex-col">
-        <label className="text-gray-800 font-bold mb-2">Name</label>
-        <input
-          className="input_field px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-          type="text"
-          {...register('name')}
-          placeholder="Enter name"
-        />
-      </div>
-
-      {/* Price */}
-      <div className="flex flex-col">
-        <label className="text-gray-800 font-bold mb-2">Price</label>
-        <input
-          className="input_field px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-          type="number"
-          {...register('price')}
-          placeholder="Enter price"
-        />
-      </div>
-
-      {/* Image */}
-      <div className="flex flex-col">
-        <label className="text-gray-800 font-bold mb-2">Image</label>
-        <input
-          className="input_field px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-          type="file"
-          {...register('image')}
-        />
-      </div>
-
-      {/* Category */}
-      <div className="flex flex-col">
-        <label className="text-gray-800 font-bold mb-2">Category</label>
-        <input
-          className="input_field px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-          type="text"
-          {...register('category')}
-          placeholder="Enter category"
-        />
-      </div>
-
-      {/* Description */}
-      <div className="flex flex-col">
-        <label className="text-gray-800 font-bold mb-2">Description</label>
-        <input
-          type="text"
-          className="input_field px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-          {...register('description')}
-          placeholder="Enter description"
-        />
-      </div>
-
-      {/* Stock */}
-      <div className="flex flex-col">
-        <label className="text-gray-800 font-bold mb-2">Stock</label>
-        <input
-          type="text"
-          className="input_field px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-          {...register('stock')}
-          placeholder="Enter stock"
-        />
-      </div>
-
-      {/* Discount Percentage */}
-      <div className="flex flex-col">
-        <label className="text-gray-800 font-bold mb-2">Discount Percentage</label>
-        <input
-          type="number"
-          className="input_field px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-          {...register('discountPercentage')}
-          placeholder="Enter discount percentage"
-        />
-      </div>
-      <button
-      className="bg-gradient-to-r from-yellow-400 to-orange-500 px-6 py-3 rounded-lg text-white font-bold shadow-lg hover:bg-gradient-to-l hover:from-orange-500 hover:to-yellow-400 transition-all duration-300 mt-6 w-full"
-      type="submit"
-    >
-      {isEdit ? 'Update Product' : 'Add Product'}
-    </button>
-    </form>
-
-  
-  </Box>
-</Modal>
-
+        open={open}
+        onClose={() => setOpen(false)}
+        aria-labelledby="modal-modal-title"
+        aria-describedby="modal-modal-description"
+      >
+        <Box sx={style}>
+          <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Add your form fields here */}
+            <button
+              className="bg-gradient-to-r from-yellow-400 to-orange-500 px-6 py-3 rounded-lg text-white font-bold shadow-lg hover:bg-gradient-to-l hover:from-orange-500 hover:to-yellow-400 transition-all duration-300 mt-6 w-full"
+              type="submit"
+            >
+              {isEdit ? 'Update Product' : 'Add Product'}
+            </button>
+          </form>
+        </Box>
+      </Modal>
     </div>
   );
 }

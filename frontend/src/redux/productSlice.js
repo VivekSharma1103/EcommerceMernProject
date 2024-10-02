@@ -30,18 +30,23 @@ export const createProduct = createAsyncThunk(
     }
   }
 );
+
+
 export const deleteProduct = createAsyncThunk(
   'delete/product',
-  async(formData,{rejectWithValue})=>{
+  async (productId, { rejectWithValue }) => {
     try {
-      const res = await axios.delete('http://localhost:3000/api/deleteproduct',formData);
+      const res = await axios.delete(`http://localhost:3000/api/deleteproduct/${productId}`);
       
-    }
-    catch(error){
-      return rejectWithValue(error);
+      // Return the response data if successful
+      return res.data;
+    } catch (error) {
+      // Reject with error if the request fails
+      return rejectWithValue(error.response?.data || error.message);
     }
   }
-)
+);
+
 const productSlice = createSlice({
   name: 'product',
   initialState,
